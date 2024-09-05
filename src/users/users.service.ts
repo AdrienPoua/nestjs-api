@@ -1,25 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+
 export interface User {
   id: string;
   username: string;
-}
-
-export interface UserWithPassword extends User {
   password: string;
 }
 
 @Injectable()
 export class UsersService {
-  private readonly users: UserWithPassword[] = [];
+  private readonly users: User[] = [];
 
   async create(userData: {
     username: string;
     password: string;
   }): Promise<User> {
     const hashedPassword: string = await bcrypt.hash(userData.password, 10);
-    const user: UserWithPassword = {
+    const user: User = {
       id: uuidv4(),
       username: userData.username,
       password: hashedPassword,
@@ -27,10 +25,10 @@ export class UsersService {
     this.users.push(user);
 
     // Retourne l'utilisateur sans son mot de passe
-    return { id: user.id, username: user.username };
+    return { id: user.id, username: user.username, password: user.password };
   }
 
-  async findOne(username: string): Promise<UserWithPassword> {
+  async findOne(username: string): Promise<User> {
     const user = this.users.find((user) => user.username === username);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -41,7 +39,7 @@ export class UsersService {
   async update(
     username: string,
     updateData: { username?: string; password?: string },
-  ): Promise<UserWithPassword> {
+  ): Promise<User> {
     const user = await this.findOne(username);
     if (user) {
       if (updateData.password) {

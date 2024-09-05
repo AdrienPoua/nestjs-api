@@ -70,12 +70,14 @@ describe('UsersService', () => {
    ******************************************/
 
   describe('User creation', () => {
-    it('should create a new user and return it with an id and without password', async () => {
+    it('should create a new user and return it with a hashed password', async () => {
       const result = await service.create(user);
       expect(result).toEqual({
         username: user.username,
         id: expect.any(String),
+        password: expect.any(String), // Check if the password is hashed
       });
+      expect(result.password).not.toBe(user.password); // Check if the password is hashed
     });
   });
 
@@ -112,7 +114,8 @@ describe('UsersService', () => {
       const result = await service.update(user.username, updatedUser);
       expect(result).toEqual({
         username: updatedUser.username,
-        password: expect.any(String),
+        password:
+          expect.any(String) && expect.not.stringContaining(user.password),
         id: expect.any(String),
       });
     });
