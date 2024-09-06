@@ -7,6 +7,10 @@ describe('UsersController', () => {
   let controller: UsersController;
   let usersService: UsersService;
 
+  /******************************************
+   *        SECTION : initialisation       *
+   ******************************************/
+
   const mockUser = { username: 'John Doe', password: 'password', id: '1' };
   const mockReq = { user: { username: 'John Doe' } };
   const mockUpdatedUser = {
@@ -40,6 +44,10 @@ describe('UsersController', () => {
     controller = module.get<UsersController>(UsersController);
     usersService = module.get<UsersService>(UsersService);
   });
+
+  /******************************************
+   *        SECTION : test routes           *
+   ******************************************/
 
   it('should be defined', () => {
     expect(controller).toBeDefined();

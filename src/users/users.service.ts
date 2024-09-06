@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,6 +20,9 @@ export class UsersService {
     username: string;
     password: string;
   }): Promise<User> {
+    if (!userData.username || !userData.password) {
+      throw new BadRequestException('Username and password are required');
+    }
     const hashedPassword: string = await bcrypt.hash(userData.password, 10);
     const user: User = {
       id: uuidv4(),

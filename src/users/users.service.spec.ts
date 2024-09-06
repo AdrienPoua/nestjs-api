@@ -36,6 +36,17 @@ describe('UsersService', () => {
         expect(error).toBeInstanceOf(NotFoundException);
       }
     });
+    it('should throw BadRequestException if username or password is missing', async () => {
+      const userData = {
+        username: '',
+        password: 'password',
+      };
+      try {
+        await service.create(userData);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+      }
+    });
 
     it('should throw NotFoundException if updating a non-existing user', async () => {
       const updatedUser = {
