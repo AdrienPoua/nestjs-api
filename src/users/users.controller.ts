@@ -8,13 +8,14 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '../auth/auth.gard';
+import { UpdateDto } from './dto/updateDto';
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @UseGuards(AuthGuard)
   @Get()
-  async get(@Request() req: { user: { username: string } }) {
+  async findOne(@Request() req: { user: { username: string } }) {
     return this.usersService.findOne(req.user.username);
   }
 
@@ -22,8 +23,8 @@ export class UsersController {
   @Patch()
   async update(
     @Request() req: { user: { username: string } },
-    @Body() body: { username?: string; password?: string },
+    @Body() updateDto: UpdateDto,
   ) {
-    return this.usersService.update(req.user.username, body);
+    return this.usersService.update(req.user.username, updateDto);
   }
 }
