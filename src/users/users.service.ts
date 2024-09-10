@@ -23,6 +23,9 @@ export class UsersService {
     if (!userData.username || !userData.password) {
       throw new BadRequestException('Username and password are required');
     }
+    if (this.users.find((user) => user.username === userData.username)) {
+      throw new BadRequestException('Username already exists');
+    }
     const hashedPassword: string = await bcrypt.hash(userData.password, 10);
     const user: User = {
       id: uuidv4(),

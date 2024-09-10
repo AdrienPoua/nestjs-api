@@ -7,18 +7,11 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: { username: string; password: string }) {
-    return this.authService.register(body);
+    return this.authService.createUserAccount(body);
   }
 
   @Post('login')
   async login(@Body() body: { username: string; password: string }) {
-    const user = await this.authService.validateUser(
-      body.username,
-      body.password,
-    );
-    if (user) {
-      return this.authService.login(user);
-    }
-    return { error: 'Identifiant ou mot de passe incorrect' };
+    return this.authService.login(body.username, body.password);
   }
 }

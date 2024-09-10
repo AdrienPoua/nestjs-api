@@ -1,36 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-
-interface User {
-  id: string;
-  username: string;
-}
-
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService, // Injection du UsersService
-    private readonly jwtService: JwtService, // Injection du JwtService
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
-
-  async validateUser(username: string, pass: string): Promise<User | null> {
+  async login(username: string, pass: string) {
     const user = await this.usersService.findOne(username);
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      return { id: user.id, username: user.username };
+    const secret = this.configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET is not defined');
     }
-    return null;
-  }
-
-  async login(user: User) {
+    if (!bcrypt.compare(pass, user.password)) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
     const payload = { username: user.username, sub: user.id };
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: await this.jwtService.sign(payload, { secret }),
     };
   }
 
-  async register(userData: { username: string; password: string }) {
+  async createUserAccount(userData: { username: string; password: string }) {
     const { username, password } = userData;
     return this.usersService.create({
       username,

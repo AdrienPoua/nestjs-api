@@ -1,7 +1,7 @@
+import { AuthGuard } from './../auth/auth.gard';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -35,7 +35,7 @@ describe('UsersController', () => {
         },
       ],
     })
-      .overrideGuard(JwtAuthGuard)
+      .overrideGuard(AuthGuard)
       .useValue({
         canActivate: jest.fn(() => true), // Mock JwtAuthGuard pour autoriser l'accès
       })

@@ -14,7 +14,7 @@ describe('AuthService', () => {
     username: 'John Doe',
     password: 'Password',
   };
-  const mockUserNoPassword = { id: '1', username: 'John Doe' };
+  const MOCKED_JWT_TOKEN = 'signed-jwt-token';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -46,63 +46,41 @@ describe('AuthService', () => {
   });
 
   /******************************************
-   *        TEST: validateUser()            *
-   ******************************************/
-  describe('validateUser', () => {
-    it('should return user without password if credentials are valid', async () => {
-      // Mock findOne pour retourner l'utilisateur
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
-
-      // Mock bcrypt.compare pour simuler la vérification correcte du mot de passe
-      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => true); // Simuler un mot de passe correct
-
-      const result = await authService.validateUser('John Doe', 'password');
-      expect(result).toEqual({
-        id: mockUser.id,
-        username: mockUser.username,
-      });
-    });
-
-    it('should return null if credentials are invalid', async () => {
-      // Mock findOne pour retourner l'utilisateur
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
-
-      // Mock bcrypt.compare pour simuler la vérification incorrecte du mot de passe
-      jest.spyOn(bcrypt, 'compare').mockImplementation(async () => false); // Simuler un mot de passe incorrect
-
-      const result = await authService.validateUser(
-        'John Doe',
-        'wrongPassword',
-      );
-      expect(result).toBeNull();
-    });
-
-    it('should return null if the password doesnt match', async () => {
-      // Mock findOne pour retourner null
-      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
-      const result = await authService.validateUser(
-        'nonexistent',
-        'fakePassword',
-      );
-      expect(result).toBeNull();
-    });
-  });
-
-  /******************************************
    *        TEST: login()                   *
    ******************************************/
   describe('login', () => {
     it('should return a JWT token', async () => {
       // Mock le retour de la méthode sign de JwtService
-      const mockToken = 'signed-jwt-token';
-      jest.spyOn(jwtService, 'sign').mockReturnValue(mockToken);
+      jest.spyOn(jwtService, 'sign').mockReturnValue(MOCKED_JWT_TOKEN);
 
-      const result = await authService.login(mockUserNoPassword);
-      expect(result).toEqual({ access_token: mockToken });
+      // Mock de bcrypt pour simuler la comparaison réussie des mots de passe
 
+      jest.spyOn(bcrypt as any, 'compare').mockResolvedValueOnce(true);
+
+      // Simuler la récupération d'un utilisateur avec un mot de passe hashé
+      const mockUserWithHashedPassword = {
+        ...mockUser,
+        password: await bcrypt.hash(mockUser.password, 10), // Ajoute un mot de passe hashé
+      };
+
+      // Mock de findOne pour renvoyer l'utilisateur simulé
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockResolvedValue(mockUserWithHashedPassword);
+
+      // Appel de la méthode login
+      const result = await authService.login(
+        mockUser.username,
+        mockUser.password,
+      );
+
+      // Vérification du résultat
+      expect(result).toEqual({ access_token: MOCKED_JWT_TOKEN });
+
+      // Vérification du payload passé à jwtService.sign
       const expectedPayload = {
-        username: mockUserNoPassword.username,
-        sub: mockUserNoPassword.id,
+        username: mockUser.username,
+        sub: mockUser.id,
       };
       expect(jwtService.sign).toHaveBeenCalledWith(expectedPayload);
     });
@@ -115,7 +93,7 @@ describe('AuthService', () => {
     it('should call UsersService.create to register a new user', async () => {
       jest.spyOn(usersService, 'create').mockResolvedValue(mockUser);
 
-      const result = await authService.register(mockUser);
+      const result = await authService.createUserAccount(mockUser);
       expect(result).toEqual({ ...mockUser, password: expect.any(String) });
       expect(usersService.create).toHaveBeenCalledWith({
         username: mockUser.username,

@@ -7,19 +7,18 @@ import {
   Get,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
+import { AuthGuard } from '../auth/auth.gard';
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard)
   @Get()
   async get(@Request() req: { user: { username: string } }) {
     return this.usersService.findOne(req.user.username);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthGuard)
   @Patch()
   async update(
     @Request() req: { user: { username: string } },

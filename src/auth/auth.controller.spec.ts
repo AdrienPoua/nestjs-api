@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 describe('AuthController', () => {
   let authController: AuthController;
   let authService: AuthService;
+  const JWT_MOCKED_TOKEN = 'jwt-mocked-token';
   const mockUser = { username: 'testuser', password: 'testpassword', id: '1' };
 
   beforeEach(async () => {
@@ -14,9 +15,8 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: {
-            validateUser: jest.fn(), // Mock des méthodes du service
             login: jest.fn(),
-            register: jest.fn(),
+            createUserAccount: jest.fn(),
           },
         },
       ],
@@ -36,9 +36,12 @@ describe('AuthController', () => {
 
   describe('POST /auth/register', () => {
     it('should register a new user', async () => {
-      jest.spyOn(authService, 'register').mockResolvedValue(mockUser);
+      jest.spyOn(authService, 'createUserAccount').mockResolvedValue(mockUser);
 
-      const result = await authController.register(mockUser);
+      const result = await authController.register({
+        username: mockUser.username,
+        password: mockUser.password,
+      });
       expect(result).toEqual(mockUser);
     });
   });
@@ -49,16 +52,15 @@ describe('AuthController', () => {
 
   describe('POST /auth/login', () => {
     it('should login a user', async () => {
-      jest.spyOn(authService, 'validateUser').mockResolvedValue({
-        id: mockUser.id,
-        username: mockUser.username,
+      jest.spyOn(authService, 'login').mockResolvedValue({
+        access_token: JWT_MOCKED_TOKEN,
       });
-      jest
-        .spyOn(authService, 'login')
-        .mockResolvedValue({ access_token: 'testtoken' });
 
-      const result = await authController.login(mockUser);
-      expect(result).toEqual({ access_token: 'testtoken' });
+      const result = await authController.login({
+        username: mockUser.username,
+        password: mockUser.password,
+      });
+      expect(result).toEqual({ access_token: JWT_MOCKED_TOKEN });
     });
   });
 });
