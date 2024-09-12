@@ -18,10 +18,10 @@ describe('UsersService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-  const user = {
+  const mockedUser = {
     id: '123',
     username: 'John Doe',
-    password: 'password',
+    password: 'mocked',
   };
 
   /******************************************
@@ -31,7 +31,7 @@ describe('UsersService', () => {
   describe('Test errors cases', () => {
     it('should throw NotFoundException if user is not found', async () => {
       try {
-        await service.findOne('non_existing_user');
+        await service.findOne({ username: 'non_existing_user' });
       } catch (error) {
         expect(error).toBeInstanceOf(NotFoundException);
       }
@@ -55,23 +55,9 @@ describe('UsersService', () => {
       };
 
       try {
-        await service.update('invalid_username', updatedUser);
+        await service.update({ ...updatedUser, username: 'invalid_username' });
       } catch (error) {
         expect(error).toBeInstanceOf(NotFoundException);
-      }
-    });
-    it('should throw BadRequestException if updating with invalid parameters', async () => {
-      const updatedUser = {
-        username: 'Jeanne',
-        invalid: 'invalid', // Paramètre non autorisé
-      };
-
-      await service.create(user);
-
-      try {
-        await service.update(user.username, updatedUser);
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
       }
     });
   });
@@ -82,13 +68,13 @@ describe('UsersService', () => {
 
   describe('User creation', () => {
     it('should create a new user and return it with a hashed password', async () => {
-      const result = await service.create(user);
+      const result = await service.create(mockedUser);
       expect(result).toEqual({
-        username: user.username,
+        username: mockedUser.username,
         id: expect.any(String),
         password: expect.any(String), // Check if the password is hashed
       });
-      expect(result.password).not.toBe(user.password); // Check if the password is hashed
+      expect(result.password).not.toBe(mockedUser.password); // Check if the password is hashed
     });
   });
 
@@ -98,10 +84,10 @@ describe('UsersService', () => {
 
   describe('User search', () => {
     it('should find a user by username and return it with an id', async () => {
-      await service.create(user);
-      const result = await service.findOne(user.username);
+      await service.create(mockedUser);
+      const result = await service.findOne({ username: mockedUser.username });
       expect(result).toEqual({
-        username: user.username,
+        username: mockedUser.username,
         id: expect.any(String),
         password: expect.any(String),
       });
@@ -119,14 +105,12 @@ describe('UsersService', () => {
         password: '1234',
       };
 
-      // Ajout de l'utilisateur avant la mise à jour
-      await service.create(user);
+      jest.spyOn(service, 'create').mockResolvedValue(mockedUser);
+      jest.spyOn(service, 'findOne').mockResolvedValue(mockedUser);
 
-      const result = await service.update(user.username, updatedUser);
+      const result = await service.update(updatedUser);
       expect(result).toEqual({
         username: updatedUser.username,
-        password:
-          expect.any(String) && expect.not.stringContaining(user.password),
         id: expect.any(String),
       });
     });

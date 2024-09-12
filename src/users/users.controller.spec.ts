@@ -57,7 +57,7 @@ describe('UsersController', () => {
     it('should return a user when authenticated', async () => {
       jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
       const result = await controller.findOne(mockReq);
-      expect(usersService.findOne).toHaveBeenCalledWith(mockUser.username);
+      expect(usersService.findOne).toHaveBeenCalledWith(mockReq.user);
       expect(result).toEqual(mockUser);
     });
 
@@ -71,10 +71,10 @@ describe('UsersController', () => {
         username: mockUpdatedUser.username,
         password: expect.any(String),
       });
-      expect(usersService.update).toHaveBeenCalledWith(
-        mockUser.username,
-        mockUpdatedUser,
-      );
+      expect(usersService.update).toHaveBeenCalledWith({
+        ...mockUpdatedUser,
+        username: mockReq.user.username,
+      });
     });
   });
 });

@@ -3,23 +3,31 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 describe('AuthService', () => {
   let authService: AuthService;
   let usersService: UsersService;
   let jwtService: JwtService;
+  let configService: ConfigService;
 
   const mockUser = {
     id: '1',
     username: 'John Doe',
     password: 'Password',
   };
-  const MOCKED_JWT_TOKEN = 'signed-jwt-token';
+  const mockUserWithHashedPassword = {
+    ...mockUser,
+    password: 'HashedPassword',
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        JwtService,
+        ConfigService,
         {
           provide: UsersService,
           useValue: {
@@ -39,50 +47,57 @@ describe('AuthService', () => {
     authService = module.get<AuthService>(AuthService);
     usersService = module.get<UsersService>(UsersService);
     jwtService = module.get<JwtService>(JwtService);
+    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
     expect(authService).toBeDefined();
+    expect(usersService).toBeDefined();
+    expect(jwtService).toBeDefined();
+    expect(configService).toBeDefined();
   });
 
   /******************************************
    *        TEST: login()                   *
    ******************************************/
-  describe('login', () => {
-    it('should return a JWT token', async () => {
-      // Mock le retour de la méthode sign de JwtService
-      jest.spyOn(jwtService, 'sign').mockReturnValue(MOCKED_JWT_TOKEN);
-
-      // Mock de bcrypt pour simuler la comparaison réussie des mots de passe
-
-      jest.spyOn(bcrypt as any, 'compare').mockResolvedValueOnce(true);
-
-      // Simuler la récupération d'un utilisateur avec un mot de passe hashé
-      const mockUserWithHashedPassword = {
-        ...mockUser,
-        password: await bcrypt.hash(mockUser.password, 10), // Ajoute un mot de passe hashé
-      };
-
-      // Mock de findOne pour renvoyer l'utilisateur simulé
-      jest
-        .spyOn(usersService, 'findOne')
-        .mockResolvedValue(mockUserWithHashedPassword);
-
-      // Appel de la méthode login
-      const result = await authService.login(
-        mockUser.username,
-        mockUser.password,
-      );
-
-      // Vérification du résultat
-      expect(result).toEqual({ access_token: MOCKED_JWT_TOKEN });
-
-      // Vérification du payload passé à jwtService.sign
+  describe('AuthService - login', () => {
+    it('should return a JWT token when login is successful', async () => {
+      const JWT_MOCKED_TOKEN = 'mocked_jwt_token';
       const expectedPayload = {
         username: mockUser.username,
         sub: mockUser.id,
       };
+      /// SPYON ///
+      jest
+        .spyOn(bcrypt, 'compare')
+        .mockImplementation(() => Promise.resolve(true));
+      jest.spyOn(usersService, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(jwtService, 'sign').mockReturnValue(JWT_MOCKED_TOKEN);
+
+      /// ACTION ///
+      const result = await authService.login(mockUser);
+
+      /// EXPECT ///
+      expect(result).toEqual({ access_token: JWT_MOCKED_TOKEN });
       expect(jwtService.sign).toHaveBeenCalledWith(expectedPayload);
+      expect(jwtService.sign).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw an UnauthorizedException if password does not match', async () => {
+      jest
+        .spyOn(usersService, 'findOne')
+        .mockResolvedValue(mockUserWithHashedPassword);
+      // Mock de bcrypt.compare pour simuler un échec de la comparaison des mots de passe
+      jest
+        .spyOn(bcrypt, 'compare')
+        .mockImplementation(() => Promise.resolve(false));
+
+      await expect(authService.login(mockUser)).rejects.toThrow(
+        UnauthorizedException,
+      );
+
+      // Vérification que jwtService.sign n'a pas été appelé
+      expect(jwtService.sign).not.toHaveBeenCalled();
     });
   });
 
@@ -93,12 +108,12 @@ describe('AuthService', () => {
     it('should call UsersService.create to register a new user', async () => {
       jest.spyOn(usersService, 'create').mockResolvedValue(mockUser);
 
-      const result = await authService.createUserAccount(mockUser);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...userWithoutId } = mockUser;
+
+      const result = await authService.createUserAccount(userWithoutId);
       expect(result).toEqual({ ...mockUser, password: expect.any(String) });
-      expect(usersService.create).toHaveBeenCalledWith({
-        username: mockUser.username,
-        password: mockUser.password,
-      });
+      expect(usersService.create).toHaveBeenCalledWith(userWithoutId);
     });
   });
 });
